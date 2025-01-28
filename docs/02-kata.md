@@ -62,7 +62,7 @@ export type Player = 'PLAYER_ONE' | 'PLAYER_TWO';
 #### **Naive point attempt with a type alias**
 
 ```typescript
-type Point = number
+type Point = number;
 ```
 
 This easily enables you to model some of the legal point values:
@@ -90,14 +90,11 @@ For a 32-bit integer, this means that we have four legal representations (0, 15,
 You may see that love, 15, 30, and 40 aren't numbers, but rather labels. No arithmetic is performed on them. It's easy to constrain the domain of points with a discriminated union
 
 ```typescript
-export type Point =
-  | Love
-  | Fifteen
-  | Thirty
-  | Forty
+export type Point = Love | Fifteen | Thirty | Forty;
 ```
 
 with
+
 ```typescript
 export type Love = {
   kind: 'LOVE';
@@ -133,10 +130,11 @@ const forty = (): Forty => ({
 ```
 
 In Typescript we need to define type constructor manually, like :
+
 ```typescript
 const love = (): Love => ({
-    kind: 'LOVE',
-})
+  kind: 'LOVE',
+});
 ```
 
 We need to do this for each variant of Point type.
@@ -145,9 +143,9 @@ A Point value isn't a score. A score is a representation of a state in the game,
 
 ```typescript
 export type PointsData = {
-    playerOne: Point;
-    playerTwo: Point;
-}
+  playerOne: Point;
+  playerTwo: Point;
+};
 ```
 
 You can experiment with this type:
@@ -197,7 +195,6 @@ export type PointsData = {
 };
 ```
 
-
 While this enables you to keep track of the score when both players have less than forty points, the following phases of a game still remain:
 
 - One of the players have forty points.
@@ -218,7 +215,6 @@ For instance, this value indicates that playerOne has forty points, and playerTw
 
 ```typescript
 let fd: FortyData = { player: playerOne(), otherPoint: love() };
-
 ```
 
 This is a legal score. Other values of this type exist, but none of them are illegal.
@@ -262,10 +258,21 @@ export type Game = {
 #### 🧑‍💻 Exercice 0 🧑‍💻
 
 Write type constructors of types Deuce, Forty and Advantage. I give you their types :
-```
-deuce: () -> Deuce
-forty: Player -> Point -> Forty
-advantage: Player -> Advantage
+
+```typescript
+const deuce = (): Deuce => ({
+  kind: 'DEUCE',
+});
+
+const forty = (player: Player, otherPoint: Point): Forty => ({
+  kind: 'FORTY',
+  fortyData: { player, otherPoint },
+});
+
+const advantage = (player: Player): Advantage => ({
+  kind: 'ADVANTAGE',
+  player,
+});
 ```
 
 As an example, the game starts with both players at love:
@@ -298,7 +305,6 @@ We will apply Test-Driven Development following the Red/Green/Refactor cycle, us
 
 We will define a smaller function for each case, and test the properties of each of these functions.
 
-
 Test framework is already setup :
 
 - [index.ts](../__tests__/index.ts) : contains tests and test sets
@@ -312,15 +318,14 @@ In [index.ts](../__tests__/index.ts) :
 
 ```typescript
 test('Given deuce, score is advantage to winner', () => {
-    fc.assert(
-      fc.property(G.getPlayer(), winner => {
-        const score = scoreWhenDeuce(winner);
-        const scoreExpected = advantage(winner);
-        expect(score).toStrictEqual(scoreExpected);
-      })
-    );
-  });
-
+  fc.assert(
+    fc.property(G.getPlayer(), winner => {
+      const score = scoreWhenDeuce(winner);
+      const scoreExpected = advantage(winner);
+      expect(score).toStrictEqual(scoreExpected);
+    })
+  );
+});
 ```
 
 The test fails because we don't have implement the function `scoreWhenDeuce` yet :
@@ -343,15 +348,15 @@ We will add a new test :
 
 ```typescript
 test('Given advantage when advantagedPlayer wins, score is Game avantagedPlayer', () => {
-    fc.assert(
-      fc.property(G.getPlayer(), G.getPlayer(), (advantagedPlayer, winner) => {
-        const score = scoreWhenAdvantage(advantagedPlayer, winner);
-        const scoreExpected = game(winner);
-        fc.pre(isSamePlayer(advantagedPlayer, winner));
-        expect(score).toStrictEqual(scoreExpected);
-      })
-    );
-  });
+  fc.assert(
+    fc.property(G.getPlayer(), G.getPlayer(), (advantagedPlayer, winner) => {
+      const score = scoreWhenAdvantage(advantagedPlayer, winner);
+      const scoreExpected = game(winner);
+      fc.pre(isSamePlayer(advantagedPlayer, winner));
+      expect(score).toStrictEqual(scoreExpected);
+    })
+  );
+});
 ```
 
 _Note : Here we need a precondition to check that the winner is also the advantaged player. In Fast-check we can use [pre](https://github.com/dubzzz/fast-check/blob/main/packages/fast-check/documentation/Tips.md#filter-invalid-combinations-using-pre-conditions) function with a condition._
@@ -373,15 +378,15 @@ Add a new test :
 
 ```typescript
 test('Given advantage when otherPlayer wins, score is Deuce', () => {
-    fc.assert(
-      fc.property(G.getPlayer(), G.getPlayer(), (advantagedPlayer, winner) => {
-        fc.pre(!isSamePlayer(advantagedPlayer, winner));
-        const score = scoreWhenAdvantage(advantagedPlayer, winner);
-        const scoreExpected = deuce();
-        expect(score).toStrictEqual(scoreExpected);
-      })
-    );
-  });
+  fc.assert(
+    fc.property(G.getPlayer(), G.getPlayer(), (advantagedPlayer, winner) => {
+      fc.pre(!isSamePlayer(advantagedPlayer, winner));
+      const score = scoreWhenAdvantage(advantagedPlayer, winner);
+      const scoreExpected = deuce();
+      expect(score).toStrictEqual(scoreExpected);
+    })
+  );
+});
 ```
 
 The test fails again (⊙_☉)
@@ -396,7 +401,6 @@ export const scoreWhenAdvantage = (
   if (isSamePlayer(advantagedPlayed, winner)) return game(winner);
   return deuce();
 };
-
 ```
 
 Now the test pass ! (•̀ᴗ•́)و
@@ -413,16 +417,16 @@ The first property is the easiest :
 
 ```typescript
 test('Given a player at 40 when the same player wins, score is Game for this player', () => {
-    fc.assert(
-      fc.property(G.getForty(), G.getPlayer(), ({ fortyData }, winner) => {
-        // Player who have forty points wins
-        fc.pre(isSamePlayer(fortyData.player, winner));
-        const score = scoreWhenForty(fortyData, winner);
-        const scoreExpected = game(winner);
-        expect(score).toStrictEqual(scoreExpected);
-      })
-    );
-  });
+  fc.assert(
+    fc.property(G.getForty(), G.getPlayer(), ({ fortyData }, winner) => {
+      // Player who have forty points wins
+      fc.pre(isSamePlayer(fortyData.player, winner));
+      const score = scoreWhenForty(fortyData, winner);
+      const scoreExpected = game(winner);
+      expect(score).toStrictEqual(scoreExpected);
+    })
+  );
+});
 ```
 
 The test fails, now add an implementation :
@@ -440,36 +444,36 @@ Add a test for the second :
 
 ```typescript
 test('Given player at 40 and other at 30 when other wins, score is Deuce', () => {
-    fc.assert(
-      fc.property(G.getForty(), G.getPlayer(), ({ fortyData }, winner) => {
-        // Other player wins
-        fc.pre(!isSamePlayer(fortyData.player, winner));
-        // Other point must be 30
-        fc.pre(fortyData.otherPoint.kind === 'THIRTY');
-        const score = scoreWhenForty(fortyData, winner);
-        const scoreExpected = deuce();
-        expect(score).toStrictEqual(scoreExpected);
-      })
-    );
-  });
+  fc.assert(
+    fc.property(G.getForty(), G.getPlayer(), ({ fortyData }, winner) => {
+      // Other player wins
+      fc.pre(!isSamePlayer(fortyData.player, winner));
+      // Other point must be 30
+      fc.pre(fortyData.otherPoint.kind === 'THIRTY');
+      const score = scoreWhenForty(fortyData, winner);
+      const scoreExpected = deuce();
+      expect(score).toStrictEqual(scoreExpected);
+    })
+  );
+});
 ```
 
 And add a test for the third property :
 
 ```typescript
 test('Given player at 40 and other at 15 when other wins, score is 40 - 15', () => {
-    fc.assert(
-      fc.property(G.getForty(), G.getPlayer(), ({ fortyData }, winner) => {
-        // Other player wins
-        fc.pre(!isSamePlayer(fortyData.player, winner));
-        // Other point must be 15
-        fc.pre(fortyData.otherPoint.kind === 'FIFTEEN');
-        const score = scoreWhenForty(fortyData, winner);
-        const scoreExpected = forty(fortyData.player, thirty());
-        expect(score).toStrictEqual(scoreExpected);
-      })
-    );
-  });
+  fc.assert(
+    fc.property(G.getForty(), G.getPlayer(), ({ fortyData }, winner) => {
+      // Other player wins
+      fc.pre(!isSamePlayer(fortyData.player, winner));
+      // Other point must be 15
+      fc.pre(fortyData.otherPoint.kind === 'FIFTEEN');
+      const score = scoreWhenForty(fortyData, winner);
+      const scoreExpected = forty(fortyData.player, thirty());
+      expect(score).toStrictEqual(scoreExpected);
+    })
+  );
+});
 ```
 
 Iterate our implementation of `scoreWhenForty` to make the tests pass ! (•̀ᴗ•́)و
@@ -516,26 +520,27 @@ Now the test pass ! (ﾉ ◕ ヮ ◕)ﾉ\*:・ﾟ ✧
 Implement some tests for points (uncomment them in [index.ts](../__tests__/index.ts)) :
 
 ```typescript
-  test('Given players at 0 or 15 points score kind is still POINTS', () => {
-    fc.assert(
-      fc.property(G.getPoints(), G.getPlayer(), ({ pointsData }, winner) => {
-        throw new Error(
-          'Your turn to code the preconditions, expected result and test.'
-        );
-      })
-    );
-  });
+test('Given players at 0 or 15 points score kind is still POINTS', () => {
+  fc.assert(
+    fc.property(G.getPoints(), G.getPlayer(), ({ pointsData }, winner) => {
+      throw new Error(
+        'Your turn to code the preconditions, expected result and test.'
+      );
+    })
+  );
+});
 ```
+
 ```typescript
-  test('Given one player at 30 and win, score is forty', () => {
-    fc.assert(
-      fc.property(G.getPoints(), G.getPlayer(), ({ pointsData }, winner) => {
-        throw new Error(
-          'Your turn to code the preconditions, expected result and test.'
-        );
-      })
-    );
-  });
+test('Given one player at 30 and win, score is forty', () => {
+  fc.assert(
+    fc.property(G.getPoints(), G.getPlayer(), ({ pointsData }, winner) => {
+      throw new Error(
+        'Your turn to code the preconditions, expected result and test.'
+      );
+    })
+  );
+});
 ```
 
 Then implements `scoreWhenPoint` :
@@ -543,6 +548,7 @@ Then implements `scoreWhenPoint` :
 ```typescript
 export const scoreWhenPoint = (current: PointsData, winner: Player): Score => ...
 ```
+
 _Tip: You can use pipe function from fp-ts to improve readability. See scoreWhenForty function._
 
 Now the test pass ! (ﾉ ◕ ヮ ◕)ﾉ\*:・ﾟ ✧
